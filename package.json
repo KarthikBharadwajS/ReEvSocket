@@ -1,12 +1,20 @@
 {
   "name": "reevsocket",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "ReEvSocket is a small wrapper around `WebSocket` which helps you in building event based socket requirement and will also automatically reconnect if the connect is lost.",
   "main": "reevsocket.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "author": "KarthikBharadwajS",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KarthikBharadwajS/ReEvSocket"
+  },
+  "bugs": {
+    "url": "https://github.com/KarthikBharadwajS/ReEvSocket/issues"
+  },
+  "homepage": "https://github.com/KarthikBharadwajS/ReEvSocket#readme"
 }

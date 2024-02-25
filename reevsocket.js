@@ -53,7 +53,7 @@ module.exports = function (url, options) {
 
             var message = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
             if (message.action && events[message.action]) {
-                controller.event(message.action, message);
+                controller.event(message.action, message.payload);
             }
         };
 
