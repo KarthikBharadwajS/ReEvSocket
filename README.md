@@ -156,4 +156,4 @@ If [`options.maxAttempts`](#optionsmaxattempts) has not been exceeded, enqueues 
 
 ### start()
 
-Initializes a new `WebSocket` &mdash; used on initialization and by [`reconnect()`](#reconnect).
+Initializes a new `WebSocket` &mdash; used on initialization and by [`retry()`](#retry).
