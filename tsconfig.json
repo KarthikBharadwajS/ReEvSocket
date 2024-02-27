@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+      "allowJs": true,
+      "checkJs": false,
+      "noEmit": true,
+      "strict": true,
+      "baseUrl": ".",
+      "paths": {
+        "*": ["types/*"]
+      }
+    },
+    "include": [
+      "src/**/*",
+      "types/**/*"
+    ]
+  }
+  
