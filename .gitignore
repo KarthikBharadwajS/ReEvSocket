@@ -23,7 +23,6 @@ yarn-error.log*
 
 # IDE and editor directories
 /.idea
-/.vscode
 *.swp
 *.swo
 *.sublime-workspace
