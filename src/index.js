@@ -1,11 +1,13 @@
-function noop() {};
-
 /**
- * 
  * @param {string} url
  * @param {object} [options]
  * @param {number} [options.maxAttempts=Infinity] - maximum number of reconnection attempts, will be ignored if retry is set to exponential
- * @param {number} [options.timeout=1000] - time between reconnection attempts
+ * @param {number} [options.delay=10000] - time between reconnection attempts
+ * @param {number} [options.exponentialFactor=0] - exponential backoff factor
+ * @param {number} [options.maxDelay=30000] - the threshold for the exponential factor
+ * @param {number} [options.heartbeatInterval]
+ * @param {boolean} [options.disableHeartbeat]
+ * @param {number} [options.pongTimeoutInterval]
  * @param {function} [options.onConnect] - when a connection is established
  * @param {function} [options.onClose] - when a connection is closed
  * @param {function} [options.onMessage] - on recieving a message
@@ -15,104 +17,172 @@ function noop() {};
  * @param {string[]} [options.protocols] - Either a single protocol string or an array of protocol strings. These strings are used to indicate sub-protocols, so that a single server can implement multiple WebSocket sub-protocols
  */
 module.exports = function (url, options) {
-    options = options || {};
+  options = options || {};
+  var ws;
+  var retryCount = 0;
+  var retryTimer;
+  var events = {};
+  var heartbeatTimer, pongTimer;
+  var def_heartbeat_interval = 30000;
+  var def_max_delay = 30000;
 
-    var ws, num = 0, timer = 1, controller = {};
+  function noop() {}
 
-    var max = options.maxAttempts || Infinity;
-    var default_timeout = 1e3;
-    var events = {}; // Event registry
+  var controller = {
+    start: function () {
+      if (ws) {
+        ws.close(1000, "Restarting connection"); // close an existing connection
+      }
+      ws = new WebSocket(url, options.protocols || []);
 
-    // Register an event listener
-    controller.on = function (event, listener) {
-        if (!events[event]) {
-            events[event] = [];
-        }
-        events[event].push(listener);
-    };
+      ws.onopen = function (event) {
+        resetRetryCounter();
+        (options.onConnect || noop)(event);
+        setupHeartbeat(); // start the heartbeat
+      };
 
-    // Trigger an event
-    controller.event = function (event, ...args) {
-        if (events[event]) {
-            events[event].forEach(function (listener) {
-                listener.apply(null, args);
-            });
-        }
-    };
-
-    controller.emit = function (action, json) {
-        if (!action || !json) return;
-        ws.send(JSON.stringify({ action: action, payload: json }));
-    }
-
-    controller.start = function () {
-        ws = new WebSocket(url, options && options.protocols || []);
-
-        ws.onmessage = function(e) {
-            (options && options.onMessage || noop)(e);
-
-            var message = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
-            if (message.action && events[message.action]) {
-                controller.event(message.action, message.payload);
-            }
-        };
-
-        ws.onopen = function (e) {
-            (options && options.onConnect || noop)(e);
-            num = 0;
-        }
-
-        /**
-         * 1e3 or 1000 means normal closure
-         * 1001 means going away which indicates that a server is shutting down or a browser tab is being closed
-         * 1005 means no status recieved
-         */
-        ws.onclose = function (e) {
-            if (e.code === 1e3 || e.code === 1001 || e.code === 1005) {
-                controller.retry(e);
-            } else {
-                (options && options.onClose || noop)(e);
-            }
-        }
-
-        ws.onerror = function (e) {
-            if (e && e.code && e.code === "ECONNREFUSED") {
-                controller.retry(e);
-            } else {
-                (options && options.onError || noop)(e);
-            }
-        }
-    }
-
-    controller.retry = function (e) {
-        if (timer && num++ < max) {
-            timer = setTimeout(function () {
-                (options && options.onReconnecting || noop)(e);
-                controller.start();
-            }, (options && options.timeout) || default_timeout)
-        } else {
-            (options && options.onOverflow || noop)(e);
-        }
-    }
-
-    controller.json = function (value) {
+      ws.onmessage = function (event) {
+        (options.onMessage || noop)(event);
         try {
-            ws.send(JSON.stringify(value));
+          var message = JSON.parse(event.data);
+          if (message.action && events[message.action]) {
+            controller.eventify(message.action, message.payload);
+          }
         } catch (error) {
-            console.error(error);
+          console.error("Error parsing message: ", error);
         }
-    }
+        clearTimeout(pongTimer);
+        setupHeartbeat(); // Reset the heartbeat timer on any message
+      };
 
-    controller.send = function (value) {
+      ws.onerror = function (event) {
+        (options.onError || noop)(event);
+        scheduleRetry(event);
+      };
+
+      ws.onclose = function (event) {
+        (options.onClose || noop)(event);
+        if (event.code !== 1000) {
+          scheduleRetry(event);
+        }
+      };
+    },
+
+    on: function (event, listener) {
+      if (!events[event]) {
+        events[event] = [];
+      }
+      events[event].push(listener);
+    },
+
+    eventify: function (event, ...args) {
+      if (events[event]) {
+        events[event].forEach(function (listener) {
+          listener.apply(null, args);
+        });
+      }
+    },
+
+    emit: function (action, data) {
+      if (!action || !data) return;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ action: action, payload: data }));
+      }
+    },
+
+    retry: function (event) {
+      if (retryCount < options.maxAttempts || Infinity) {
+        var delay = calculateRetryDelay();
+        retryTimer = setTimeout(function () {
+          retryCount++;
+          controller.start();
+          (options.onReconnecting || noop)(event);
+        }, delay);
+      } else {
+        (options.onOverflow || noop)(event);
+        clearRetryTimer();
+      }
+    },
+
+    close: function (code, reason) {
+      if (ws) {
+        ws.close(code || 1000, reason);
+      }
+      clearTimers();
+    },
+
+    json: function (value) {
+      try {
+        ws.send(JSON.stringify(value));
+      } catch (error) {
+        console.error(error);
+      }
+    },
+
+    send: function (value) {
+      if (ws) {
         ws.send(value);
-    }
+      }
+    },
+  };
 
-    controller.close = function (code, reason) {
-        timer = clearTimeout(timer);
-        ws.close(code || 1e3, reason);
-    }
+  function calculateRetryDelay() {
+    var backoff = options.exponentialFactor || 0;
+    var def_delay = 10000;
+    var delay =
+      backoff === 0
+        ? options.delay || def_delay
+        : Math.min(
+            (options.delay || def_delay) * Math.pow(backoff, retryCount),
+            options.maxDelay || def_max_delay
+          );
+    delay += Math.random() * 1000; // Add jitter
+    return delay;
+  }
 
-    controller.start();
+  function resetRetryCounter() {
+    retryCount = 0;
+  }
 
-    return controller;
-}
+  function scheduleRetry(event) {
+    clearTimers();
+    controller.retry(event);
+  }
+
+  function setupHeartbeat() {
+    if (options.disableHeartbeat) return;
+    clearTimeout(heartbeatTimer);
+    heartbeatTimer = setTimeout(function () {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ action: "ping" })); // Send a ping message
+      }
+    }, options.heartbeatInterval || def_heartbeat_interval);
+
+    // Setup pong message expectation
+    clearTimeout(pongTimer);
+    pongTimer = setTimeout(function () {
+      console.log("Heartbeat failed");
+      controller.close(1013, "Heartbeat failed");
+    }, options.pongTimeoutInterval ||
+      (options.heartbeatInterval || def_heartbeat_interval) + 5000);
+  }
+
+  function clearTimers() {
+    clearTimeout(retryTimer);
+    clearTimeout(heartbeatTimer);
+    clearTimeout(pongTimer);
+  }
+
+  // Network change detection
+  if (typeof window !== "undefined") {
+    window.addEventListener("online", function () {
+      controller.start();
+    });
+    window.addEventListener("offline", function () {
+      controller.close(1011, "Browser is offline");
+    });
+  }
+
+  controller.start();
+  return controller;
+};
