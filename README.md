@@ -30,8 +30,8 @@ const ws = new ReEvSocket('ws://localhost:3000', {
   heartbeatInterval: 30000, // Interval for sending heartbeat messages
   disableHeartbeat: false, // Set to true to disable heartbeat messages
   pongTimeoutInterval: 35000, // Timeout interval for expecting pong response
-  metadata: { "client_id": "123-ABC" } // pass some metadata on every heartbeat
-  enableAcknowledge: true // send acknowledge of the recieved action
+  metadata: { "client_id": "123-ABC" }, // pass some metadata on every heartbeat
+  enableAcknowledge: true, // send acknowledge of the recieved action
   onConnect: e => console.log('Connected!', e),
   onMessage: e => console.log('Ring Ring:', e),
   onReconnecting: e => console.log('Trying to reconnect', e),
@@ -84,100 +84,11 @@ The WebSocket Connection Manager accepts an `options` object for configuration. 
 | `metadata` | `object`   | `null`     | Passes metadata on every event object. |
 | `enableAcknowledge` | `boolean` | `false` | Sends acknowledge event back on successfully recieving the event |
 
-#### options.protocols
-Type: `String|Array`
-
-Either a single protocol string or an array of strings used to indicate sub-protocols. See the [`WebSocket` docs][MDN] for more info.
-
-#### options.disableHeartbeat
-Type: `Boolean`
-Default: `false`
-
-Disables heartbeat feature, if heartbeat is enabled, the client calls an `action: "ping"` request to the server with the provided [heartbeatInterval](#optionsheartbeatinterval) and expects pong response back, if server fails to send `action: "pong"` back, then the module tries the reconnection attempt again.
-
-#### options.heartbeatInterval
-Type: `Number`<br>
-Default: `30000`
-
-Beyond just attempting to reconnect on disconnects or errors, actively monitor the health of the WebSocket connection. Implement heartbeats or ping/pong messages to ensure the connection is alive. If the connection appears unresponsive, proactively initiate a reconnection.
-
-#### options.pongTimeoutInterval
-Type: `Number`<br>
-Default: `30000`
-
-Defines when the to decide socket is closed
-
-#### options.delay
-Type: `Number`<br>
-Default: `10000`
-
-The minimum amount of time (in `ms`) to wait in between reconnection attempts. Defaults to 10 second. If [`exponentialFactor`](#optionsexponentialFactor) is not set, then [`delay`](#optionsdelay) will work as a static delay between each attempt.
-
-#### options.maxAttempts
-Type: `Number`<br>
-Default: `Infinity`
-
-The maximum number of attempts to reconnect. Pass `-1` if you want to disable retry logic.
-
-#### options.exponentialFactor
-Type: `Number`<br>
-Default: `0`
-
-The exponential backoff factor for the delay to scale with between each reconnect attempts. The value cannot be `Infinity`.
-
-#### options.maxDelay
-Type: `Number`<br>
-Default: `30000`
-
-This field only takes effect when [`exponentialFactor`](#optionsexponentialFactor) is set to a number. This makes sure, delay does not cross the given threshold.
-
-#### options.onConnect
-Type: `Function`
-
-The `EventListener` to run in response to `'open'` events. It receives the `Event` object as its only parameter.
-
-> This is called when the connection has been established and is ready to send and receive data.
-
-> **Important:** on successful connection old retries counter will get reset, so that the next time connection is lost, you will consistently retry `n` number of times, as determined by `options.maxAttempts`.
-
-#### options.onMessage
-Type: `Function`
-
-The `EventListener` to run in response to `'message'` events. It receives the `Event` object as its only parameter.
-
-> This is called when a message has been received from the server. You'll probably want `event.data`!
-
-#### options.onReconnecting
-Type: `Function`
-
-The callback to run when attempting to reconnect to the server.
-
-#### options.onOverflow
-Type: `Function`
-
-The callback to run when the [`maxAttempts`](#optionsmaxattempts) limit has been met.
-
-#### options.onClose
-Type: `Function`
-
-The `EventListener` to run in response to `'close'` events. It receives the `Event` object as its only parameter.
-
-> This is called when the connection has been closed for any reason.
-
-> **Important:** If the `event.code` is _not_ `1000`, `1001`, or `1005` an automatic reconnect attempt will be queued.
-
-#### options.onError
-Type: `Function`
-
-The `EventListener` to run in response to `'error'` events. It receives the `Event` object as its only parameter.
-
-> This is called anytime an error occurs.
-
-> **Important:** If the `event.code` is `ECONNREFUSED`, an automatic reconnect attempt will be queued.
-
 ### send(data)
 
 It is a native to [`WebSocket.send()`][send(data)]
+
+> **NOTE**: Does not pass metadata if you use this method
 
 ### on(event, listener)
 

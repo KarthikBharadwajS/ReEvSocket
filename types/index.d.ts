@@ -20,8 +20,8 @@ declare module "reevsocket" {
 
   export interface Controller {
     on: (event: string, listener: (...args: any[]) => void) => void;
-    event: (event: string, ...args: any[]) => void;
-    emit: (action: string, json: any) => void;
+    setMetadata: (data: { [key: string]: any }) => void;
+    emit: (action: string, data?: any) => void;
     start: () => void;
     retry: (e: Event | CloseEvent | ErrorEvent) => void;
     json: (value: any) => void;
