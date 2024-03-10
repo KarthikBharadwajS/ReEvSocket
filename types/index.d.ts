@@ -7,6 +7,8 @@ declare module "reevsocket" {
     heartbeatInterval?: number;
     disableHeartbeat?: boolean;
     pongTimeoutInterval?: number;
+    metadata?: { [key: string]: any };
+    enableAcknowledge?: boolean;
     onConnect?: (event: Event) => void;
     onClose?: (event: CloseEvent) => void;
     onMessage?: (event: MessageEvent) => void;

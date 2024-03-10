@@ -30,6 +30,8 @@ const ws = new ReEvSocket('ws://localhost:3000', {
   heartbeatInterval: 30000, // Interval for sending heartbeat messages
   disableHeartbeat: false, // Set to true to disable heartbeat messages
   pongTimeoutInterval: 35000, // Timeout interval for expecting pong response
+  metadata: { "client_id": "123-ABC" } // pass some metadata on every heartbeat
+  enableAcknowledge: true // send acknowledge of the recieved action
   onConnect: e => console.log('Connected!', e),
   onMessage: e => console.log('Ring Ring:', e),
   onReconnecting: e => console.log('Trying to reconnect', e),
@@ -79,6 +81,8 @@ The WebSocket Connection Manager accepts an `options` object for configuration. 
 | `onReconnecting`    | `function` | *None*     | Callback function invoked during a reconnection attempt.                                                                 |
 | `onOverflow`        | `function` | *None*     | Callback function invoked when the maximum number of reconnection attempts is exceeded.                                  |
 | `protocols`         | `string[]` | *None*     | Optional protocols for the WebSocket connection. Either a single protocol string or an array of protocol strings.        |
+| `metadata` | `object`   | `null`     | Passes metadata on every event object. |
+| `enableAcknowledge` | `boolean` | `false` | Sends acknowledge event back on successfully recieving the event |
 
 #### options.protocols
 Type: `String|Array`
@@ -227,6 +231,12 @@ Convenience method that passes your `obj` (Object) through `JSON.stringify` befo
 ### retry()
 
 If [`options.maxAttempts`](#optionsmaxattempts) has not been exceeded, enqueues a reconnection attempt. Otherwise, it runs your [`options.onOverflow`](#optionsonoverflow) callback.
+
+### setMetadata()
+
+Set or overwrite metadata which will be submitted on every event
+
+> **Note:** Metadata will be passed on every heartbeat event as well.
 
 ### start()
 

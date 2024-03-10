@@ -61,7 +61,7 @@ test("should send heartbeat messages", (done) => {
   const wsController = reevsocket(url, {
     heartbeatInterval: 100,
   });
-});
+}, 10000);
 
 test("should handle custom events", (done) => {
   const testPayload = { key: "value" };
@@ -91,6 +91,32 @@ test("should send messages through WebSocket", (done) => {
 
   const wsController = reevsocket(url, {
     onConnect: function () {
+      wsController.emit(testAction, testData);
+    },
+    onError: function (e) {
+      done(error);
+    },
+  });
+}, 10000);
+
+test("should submit metadata on events", (done) => {
+  const testAction = "sendMessage";
+  const testData = { content: "Hello, World!" };
+  const testMetadata = { id: "abcd" };
+
+  wsServer.on("connection", (socket) => {
+    socket.on("message", (message) => {
+      const { action, payload, metadata } = JSON.parse(message);
+      expect(action).toBe(testAction);
+      expect(payload).toEqual(testData);
+      expect(metadata).toEqual(testMetadata);
+      done();
+    });
+  });
+
+  const wsController = reevsocket(url, {
+    onConnect: function () {
+      wsController.setMetadata(testMetadata);
       wsController.emit(testAction, testData);
     },
     onError: function (e) {

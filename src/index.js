@@ -8,6 +8,8 @@
  * @param {number} [options.heartbeatInterval]
  * @param {boolean} [options.disableHeartbeat]
  * @param {number} [options.pongTimeoutInterval]
+ * @param {object} [options.metadata]
+ * @param {boolean} [options.enableAcknowledge] - enabled acknowledge of recieved event
  * @param {function} [options.onConnect] - when a connection is established
  * @param {function} [options.onClose] - when a connection is closed
  * @param {function} [options.onMessage] - on recieving a message
@@ -18,6 +20,7 @@
  */
 module.exports = function (url, options) {
   options = options || {};
+  var metadata = options.metadata || null;
   var ws;
   var retryCount = 0;
   var retryTimer;
@@ -47,6 +50,7 @@ module.exports = function (url, options) {
           var message = JSON.parse(event.data);
           if (message.action && events[message.action]) {
             controller.eventify(message.action, message.payload);
+            controller.sendAck(message.action);
           }
         } catch (error) {
           console.error("Error parsing message: ", error);
@@ -68,6 +72,16 @@ module.exports = function (url, options) {
       };
     },
 
+    setMetadata: function (data) {
+      metadata = data;
+    },
+
+    sendAck: function (action) {
+      if (action && options.enableAcknowledge) {
+        controller.emit("ack", { recieved: action });
+      }
+    },
+
     on: function (event, listener) {
       if (!events[event]) {
         events[event] = [];
@@ -84,9 +98,10 @@ module.exports = function (url, options) {
     },
 
     emit: function (action, data) {
-      if (!action || !data) return;
+      if (!action) return;
+      data = data || null;
       if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ action: action, payload: data }));
+        ws.send(JSON.stringify({ action: action, payload: data, metadata }));
       }
     },
 
@@ -154,7 +169,7 @@ module.exports = function (url, options) {
     clearTimeout(heartbeatTimer);
     heartbeatTimer = setTimeout(function () {
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ action: "ping" })); // Send a ping message
+        controller.emit("ping", null); // Send a ping message
       }
     }, options.heartbeatInterval || def_heartbeat_interval);
 
