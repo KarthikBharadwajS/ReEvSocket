@@ -139,6 +139,14 @@ module.exports = function (url, options) {
         ws.send(value);
       }
     },
+
+    isConnected: function () {
+      return (
+        ws &&
+        ws.readyState !== WebSocket.CLOSED &&
+        ws.readyState !== WebSocket.CLOSING
+      );
+    },
   };
 
   function calculateRetryDelay() {

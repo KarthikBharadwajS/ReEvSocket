@@ -124,3 +124,41 @@ test("should submit metadata on events", (done) => {
     },
   });
 }, 10000);
+
+test("should send isConnected true when connection is live", (done) => {
+  wsServer.on("connection", (socket) => {
+    expect(socket).toBeDefined();
+  });
+
+  const wsController = reevsocket(url, {
+    onConnect: function () {
+      const isLive = wsController.isConnected();
+      expect(isLive).toBe(true);
+      done();
+    },
+    onError: function (error) {
+      done(error);
+    },
+  });
+}, 5000);
+
+test("should send isConnected false when connection is closed or closing", (done) => {
+  wsServer.on("connection", (socket) => {
+    expect(socket).toBeDefined();
+  });
+
+  const wsController = reevsocket(url, {
+    onConnect: function () {
+      const isLive = wsController.isConnected();
+      expect(isLive).toBe(true);
+
+      wsController.close(1000, "Intentional Closure");
+      const isClosed = wsController.isConnected();
+      expect(isClosed).toBe(false);
+      done();
+    },
+    onError: function (error) {
+      done(error);
+    },
+  });
+}, 5000);

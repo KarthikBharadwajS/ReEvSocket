@@ -153,6 +153,10 @@ Set or overwrite metadata which will be submitted on every event
 
 Initializes a new `WebSocket` &mdash; used on initialization and by [`retry()`](#retry()).
 
+### isConnected()
+
+Returns a boolean `true` or `false`.
+
 #### Network Change Detection [Experimental]
 
 This module automatically detects network changes (online/offline events) in browser environments and adjusts the WebSocket connection accordingly.

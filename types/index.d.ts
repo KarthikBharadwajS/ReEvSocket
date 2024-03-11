@@ -27,6 +27,7 @@ declare module "reevsocket" {
     json: (value: any) => void;
     send: (value: string | ArrayBufferLike | Blob | ArrayBufferView) => void;
     close: (code?: number, reason?: string) => void;
+    isConnected: () => boolean;
   }
 
   function connect(url: string, options?: Options): Controller;
