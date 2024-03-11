@@ -9,6 +9,7 @@
  * @param {boolean} [options.disableHeartbeat]
  * @param {number} [options.pongTimeoutInterval]
  * @param {object} [options.metadata]
+ * @param {boolean} [options.handleApiGatewayDefaults] - handles api gateway idle timeout + 2 hrs hard cutoff
  * @param {boolean} [options.enableAcknowledge] - enabled acknowledge of recieved event
  * @param {function} [options.onConnect] - when a connection is established
  * @param {function} [options.onClose] - when a connection is closed
@@ -25,9 +26,10 @@ module.exports = function (url, options) {
   var retryCount = 0;
   var retryTimer;
   var events = {};
-  var heartbeatTimer, pongTimer;
-  var def_heartbeat_interval = 30000;
+  var heartbeatTimer, pongTimer, reconnectionTimer;
+  var def_heartbeat_interval = 150000; // 2.5 mins
   var def_max_delay = 30000;
+  var reConnectionDurationLimit = 1.5 * 60 * 60 * 1000; // 1.5 hours
 
   function noop() {}
 
@@ -70,6 +72,14 @@ module.exports = function (url, options) {
           scheduleRetry(event);
         }
       };
+
+      if (options.handleApiGatewayDefaults) {
+        clearTimeout(reconnectionTimer);
+        reconnectionTimer = setTimeout(function () {
+          controller.start();
+        }, reConnectionDurationLimit +
+          Math.round(Math.random() * 10 * 60 * 1000));
+      }
     },
 
     setMetadata: function (data) {
@@ -159,7 +169,7 @@ module.exports = function (url, options) {
             (options.delay || def_delay) * Math.pow(backoff, retryCount),
             options.maxDelay || def_max_delay
           );
-    delay += Math.random() * 1000; // Add jitter
+    delay += Math.round(Math.random() * 60000); // Add jitter
     return delay;
   }
 
@@ -185,9 +195,8 @@ module.exports = function (url, options) {
     clearTimeout(pongTimer);
     pongTimer = setTimeout(function () {
       console.log("Heartbeat failed");
-      controller.close(1013, "Heartbeat failed");
-    }, options.pongTimeoutInterval ||
-      (options.heartbeatInterval || def_heartbeat_interval) + 5000);
+      controller.close(3000, "Heartbeat failed");
+    }, options.pongTimeoutInterval || options.heartbeatInterval || 30000);
   }
 
   function clearTimers() {
@@ -202,7 +211,7 @@ module.exports = function (url, options) {
       controller.start();
     });
     window.addEventListener("offline", function () {
-      controller.close(1011, "Browser is offline");
+      controller.close(3000, "Browser is offline");
     });
   }
 

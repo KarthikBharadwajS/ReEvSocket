@@ -9,6 +9,7 @@ declare module "reevsocket" {
     pongTimeoutInterval?: number;
     metadata?: { [key: string]: any };
     enableAcknowledge?: boolean;
+    handleApiGatewayDefaults?: boolean;
     onConnect?: (event: Event) => void;
     onClose?: (event: CloseEvent) => void;
     onMessage?: (event: MessageEvent) => void;

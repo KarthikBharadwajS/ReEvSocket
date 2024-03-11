@@ -71,7 +71,7 @@ The WebSocket Connection Manager accepts an `options` object for configuration. 
 | `delay`             | `number`   | `10000`    | Time between reconnection attempts in milliseconds.                                                                      |
 | `exponentialFactor` | `number`   | `0`        | Exponential backoff factor for reconnection attempts. A value of `0` indicates no exponential backoff.                   |
 | `maxDelay`          | `number`   | `30000`    | Maximum delay between reconnection attempts in milliseconds, applicable when exponential backoff is used.                |
-| `heartbeatInterval` | `number`   | `30000`     | Interval in milliseconds for sending heartbeat messages. If not specified, the default value is used.                     |
+| `heartbeatInterval` | `number`   | `150000`     | Interval in milliseconds for sending heartbeat messages. If not specified, the default value is used.                     |
 | `disableHeartbeat`  | `boolean`  | `false`    | If true, heartbeat messages are not sent.                                                                                |
 | `pongTimeoutInterval`| `number`  | `30000`     | Timeout in milliseconds for expecting a pong response after a heartbeat message. Default is based on `heartbeatInterval`. |
 | `onConnect`         | `function` | *None*     | Callback function invoked when a connection is successfully established.                                                 |
@@ -83,6 +83,7 @@ The WebSocket Connection Manager accepts an `options` object for configuration. 
 | `protocols`         | `string[]` | *None*     | Optional protocols for the WebSocket connection. Either a single protocol string or an array of protocol strings.        |
 | `metadata` | `object`   | `null`     | Passes metadata on every event object. |
 | `enableAcknowledge` | `boolean` | `false` | Sends acknowledge event back on successfully recieving the event |
+| `handleApiGatewayDefaults` | `boolean` | `false` | Handles the 10 mins idle timeout + 2 hours connection duration for WebSocket API |
 
 ### send(data)
 
