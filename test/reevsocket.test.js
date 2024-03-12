@@ -85,6 +85,24 @@ test("should disconnect if the pong heartbeat is not recieved", (done) => {
   });
 }, 10000);
 
+test("on heartbeat failure, should attempt to reconnect", (done) => {
+  let connectionAttempts = 0;
+  wsServer.on("connection", (socket) => {
+    connectionAttempts++;
+    if (connectionAttempts === 2) {
+      expect(connectionAttempts).toBe(2);
+      done();
+    }
+    socket.on("message", (message) => {});
+  });
+
+  const wsController = reevsocket(url, {
+    heartbeatInterval: 100,
+    maxAttempts: 2,
+    delay: 100,
+  });
+}, 20000);
+
 test("should handle custom events", (done) => {
   const testPayload = { key: "value" };
   wsServer.on("connection", (socket) => {
