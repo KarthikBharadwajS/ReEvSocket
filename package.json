@@ -1,6 +1,6 @@
 {
   "name": "reevsocket",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "ReEvSocket is a small wrapper around `WebSocket` which helps you in building event based socket requirement and will also automatically reconnect if the connect is lost.",
   "main": "dist/index.min.js",
   "types": "types/index.d.ts",
