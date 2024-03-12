@@ -27,7 +27,9 @@ module.exports = function (url, options) {
   var retryTimer;
   var events = {};
   var heartbeatTimer, pongTimer, reconnectionTimer;
-  var def_heartbeat_interval = 150000; // 2.5 mins
+  var def_heartbeat_interval = options.handleApiGatewayDefaults
+    ? 150000
+    : 30000; // 2.5 mins / 30 seconds
   var def_max_delay = 30000;
   var reConnectionDurationLimit = 1.5 * 60 * 60 * 1000; // 1.5 hours
 
@@ -169,7 +171,7 @@ module.exports = function (url, options) {
             (options.delay || def_delay) * Math.pow(backoff, retryCount),
             options.maxDelay || def_max_delay
           );
-    delay += Math.round(Math.random() * 60000); // Add jitter
+    delay += Math.round(Math.random() * 10000); // Add jitter
     return delay;
   }
 
@@ -185,18 +187,22 @@ module.exports = function (url, options) {
   function setupHeartbeat() {
     if (options.disableHeartbeat) return;
     clearTimeout(heartbeatTimer);
+    clearTimeout(pongTimer);
     heartbeatTimer = setTimeout(function () {
       if (ws.readyState === WebSocket.OPEN) {
         controller.emit("ping", null); // Send a ping message
+        waitForPong();
       }
     }, options.heartbeatInterval || def_heartbeat_interval);
+  }
 
+  function waitForPong() {
     // Setup pong message expectation
     clearTimeout(pongTimer);
     pongTimer = setTimeout(function () {
       console.log("Heartbeat failed");
       controller.close(3000, "Heartbeat failed");
-    }, options.pongTimeoutInterval || options.heartbeatInterval || 30000);
+    }, options.pongTimeoutInterval || options.heartbeatInterval || 10000);
   }
 
   function clearTimers() {

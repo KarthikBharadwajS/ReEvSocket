@@ -63,6 +63,28 @@ test("should send heartbeat messages", (done) => {
   });
 }, 10000);
 
+test("should disconnect if the pong heartbeat is not recieved", (done) => {
+  wsServer.on("connection", (socket) => {
+    socket.on("message", (message) => {
+      const data = JSON.parse(message);
+      if (data.action === "ping") {
+        // done();
+      }
+    });
+  });
+
+  const wsController = reevsocket(url, {
+    heartbeatInterval: 100,
+    onClose: function (e) {
+      if (e.code === 3000 && e.wasClean === true) {
+        done();
+      } else {
+        done(new Error("failed"));
+      }
+    },
+  });
+}, 10000);
+
 test("should handle custom events", (done) => {
   const testPayload = { key: "value" };
   wsServer.on("connection", (socket) => {
